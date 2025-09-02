@@ -1,5 +1,6 @@
 name: Deploy AWS Lambda Function
 
+# トリガー: push, pull_request 
 on:
   push:
     branches: 
@@ -16,11 +17,14 @@ on:
       - 'requirements.txt'
       - '.github/workflows/deploy-lambda.yml'
 
+# 環境変数
 env:
   PYTHON_VERSION: '3.13'
-  AWS_REGION: 'us-east-1'
+  AWS_REGION: 'ap-northeast-1'
 
+# ジョブ定義
 jobs:
+  # テストジョブ
   test:
     runs-on: ubuntu-latest
     steps:
@@ -42,15 +46,16 @@ jobs:
         run: |
           python -m pytest tests/ -v || echo "No tests found - skipping test execution"
 
+  # デプロイジョブ
   deploy:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
     permissions:
-      id-token: write   # Required for OIDC authentication
-      contents: read    # Required to check out the repository
-    
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -75,17 +80,17 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-
+      
+      ### Lambda 関数のデプロイ ###
       - name: Deploy Lambda Function
         uses: aws-actions/aws-lambda-deploy@v1
         with:
-          function-name: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+          function-name: sample-lambda-function
           code-artifacts-dir: ./dist
           handler: lambda_function.lambda_handler
           runtime: python3.13
           memory-size: 128
           timeout: 30
-          function-description: "Sample Lambda function deployed via GitHub Actions"
           environment: '{"ENVIRONMENT":"production","LOG_LEVEL":"INFO"}'
 
   dry-run-deploy:
