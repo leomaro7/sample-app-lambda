@@ -1,15 +1,15 @@
-# AWS IAM Setup for GitHub Actions
+# GitHub Actions 用 AWS IAM セットアップ
 
-This document describes how to set up AWS IAM roles and policies to enable GitHub Actions to deploy Lambda functions using OIDC (OpenID Connect) authentication.
+この文書では、OIDC（OpenID Connect）認証を使用してGitHub ActionsがLambda関数をデプロイできるようにするためのAWS IAMロールとポリシーの設定方法について説明します。
 
-## Prerequisites
+## 前提条件
 
-- AWS CLI installed and configured with administrator access
-- GitHub repository created
+- AWS CLIがインストールされ、管理者アクセスで設定されている
+- GitHubリポジトリが作成されている
 
-## Step 1: Create GitHub OIDC Identity Provider
+## ステップ 1: GitHub OIDC アイデンティティプロバイダーの作成
 
-Create an OIDC identity provider in AWS IAM:
+AWS IAMでOIDCアイデンティティプロバイダーを作成します：
 
 ```bash
 aws iam create-open-id-connect-provider \
@@ -19,9 +19,9 @@ aws iam create-open-id-connect-provider \
     --thumbprint-list 1c58a3a8518e8759bf075b76b750d4f2df264fcd
 ```
 
-## Step 2: Create IAM Policy for Lambda Deployment
+## ステップ 2: Lambda デプロイ用 IAM ポリシーの作成
 
-Create a policy file `lambda-deploy-policy.json`:
+ポリシーファイル `lambda-deploy-policy.json` を作成します：
 
 ```json
 {
@@ -78,7 +78,7 @@ Create a policy file `lambda-deploy-policy.json`:
 }
 ```
 
-Create the policy:
+ポリシーを作成します：
 
 ```bash
 aws iam create-policy \
@@ -86,9 +86,9 @@ aws iam create-policy \
     --policy-document file://lambda-deploy-policy.json
 ```
 
-## Step 3: Create IAM Role for GitHub Actions
+## ステップ 3: GitHub Actions 用 IAM ロールの作成
 
-Create a trust policy file `github-actions-trust-policy.json`:
+信頼ポリシーファイル `github-actions-trust-policy.json` を作成します：
 
 ```json
 {
@@ -113,9 +113,9 @@ Create a trust policy file `github-actions-trust-policy.json`:
 }
 ```
 
-**Important**: Replace `YOUR_ACCOUNT_ID`, `YOUR_GITHUB_USERNAME`, and `YOUR_REPO_NAME` with your actual values.
+**重要**: `YOUR_ACCOUNT_ID`、`YOUR_GITHUB_USERNAME`、`YOUR_REPO_NAME` を実際の値に置き換えてください。
 
-Create the role:
+ロールを作成します：
 
 ```bash
 aws iam create-role \
@@ -123,9 +123,9 @@ aws iam create-role \
     --assume-role-policy-document file://github-actions-trust-policy.json
 ```
 
-## Step 4: Attach Policy to Role
+## ステップ 4: ポリシーをロールにアタッチ
 
-Attach the policy to the role:
+ポリシーをロールにアタッチします：
 
 ```bash
 aws iam attach-role-policy \
@@ -133,9 +133,9 @@ aws iam attach-role-policy \
     --policy-arn arn:aws:iam::YOUR_ACCOUNT_ID:policy/GitHubActionsLambdaDeployPolicy
 ```
 
-## Step 5: Create Lambda Execution Role
+## ステップ 5: Lambda 実行ロールの作成
 
-Create a Lambda execution role trust policy `lambda-trust-policy.json`:
+Lambda実行ロール用の信頼ポリシー `lambda-trust-policy.json` を作成します：
 
 ```json
 {
@@ -152,22 +152,22 @@ Create a Lambda execution role trust policy `lambda-trust-policy.json`:
 }
 ```
 
-Create the Lambda execution role:
+Lambda実行ロールを作成します：
 
 ```bash
 aws iam create-role \
     --role-name lambda-execution-role \
     --assume-role-policy-document file://lambda-trust-policy.json
 
-# Attach basic execution policy
+# 基本実行ポリシーをアタッチ
 aws iam attach-role-policy \
     --role-name lambda-execution-role \
     --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 ```
 
-## Step 6: Create Lambda Function
+## ステップ 6: Lambda 関数の作成
 
-Create your Lambda function (if it doesn't exist):
+Lambda関数を作成します（まだ存在しない場合）：
 
 ```bash
 aws lambda create-function \
@@ -176,73 +176,73 @@ aws lambda create-function \
     --role arn:aws:iam::YOUR_ACCOUNT_ID:role/lambda-execution-role \
     --handler lambda_function.lambda_handler \
     --zip-file fileb://function.zip \
-    --description "Sample Lambda function for GitHub Actions deployment" \
+    --description "GitHub Actions デプロイ用のサンプル Lambda 関数" \
     --timeout 30 \
     --memory-size 128
 ```
 
-## Step 7: Set GitHub Secrets
+## ステップ 7: GitHub シークレットの設定
 
-In your GitHub repository, go to Settings > Secrets and variables > Actions, and add these secrets:
+GitHubリポジトリで、Settings > Secrets and variables > Actions に移動し、以下のシークレットを追加します：
 
 1. **AWS_ROLE_ARN**: `arn:aws:iam::YOUR_ACCOUNT_ID:role/GitHubActionsRole`
 2. **LAMBDA_FUNCTION_NAME**: `sample-lambda-function`
 
-## Step 8: (Optional) Create S3 Bucket for Large Deployments
+## ステップ 8: （オプション）大容量デプロイ用 S3 バケットの作成
 
-If your Lambda package is larger than 50MB:
+Lambdaパッケージが50MBより大きい場合：
 
 ```bash
 aws s3 mb s3://your-lambda-deployment-bucket-UNIQUE_SUFFIX
 ```
 
-Then add this secret to GitHub:
+その後、GitHubに以下のシークレットを追加します：
 - **S3_BUCKET**: `your-lambda-deployment-bucket-UNIQUE_SUFFIX`
 
-## Verification
+## 検証
 
-To verify your setup:
+設定を検証するには：
 
-1. Check that the OIDC provider exists:
+1. OIDCプロバイダーが存在することを確認：
 ```bash
 aws iam list-open-id-connect-providers
 ```
 
-2. Check that the role exists:
+2. ロールが存在することを確認：
 ```bash
 aws iam get-role --role-name GitHubActionsRole
 ```
 
-3. Check that the Lambda function exists:
+3. Lambda関数が存在することを確認：
 ```bash
 aws lambda get-function --function-name sample-lambda-function
 ```
 
-## Security Best Practices
+## セキュリティのベストプラクティス
 
-1. **Principle of Least Privilege**: The IAM policies provided grant only the minimum permissions needed for Lambda deployment.
+1. **最小権限の原則**: 提供されるIAMポリシーは、Lambdaデプロイに必要な最小限の権限のみを付与します。
 
-2. **Repository-Specific Access**: The trust policy restricts access to your specific GitHub repository.
+2. **リポジトリ固有のアクセス**: 信頼ポリシーは、特定のGitHubリポジトリへのアクセスを制限します。
 
-3. **Use OIDC**: This setup uses OIDC instead of long-lived access keys, which is more secure.
+3. **OIDCの使用**: この設定では、長期間有効なアクセスキーの代わりにOIDCを使用するため、より安全です。
 
-4. **Regular Review**: Periodically review and update IAM policies and roles.
+4. **定期的な見直し**: IAMポリシーとロールを定期的に見直し、更新してください。
 
-## Troubleshooting
+## トラブルシューティング
 
-### Common Issues:
+### よくある問題:
 
 1. **"AssumeRoleWithWebIdentity is not authorized"**
-   - Verify the OIDC provider is created correctly
-   - Check the trust policy has the correct GitHub repository path
-   - Ensure the GitHub repository is public or the organization allows OIDC
+   - OIDCプロバイダーが正しく作成されているか確認
+   - 信頼ポリシーに正しいGitHubリポジトリパスが含まれているか確認
+   - GitHubリポジトリがパブリックであるか、組織がOIDCを許可しているか確認
 
 2. **"Function not found"**
-   - Verify the Lambda function exists in the specified region
-   - Check the function name matches the GitHub secret
+   - 指定したリージョンにLambda関数が存在するか確認
+   - 関数名がGitHubシークレットと一致しているか確認
 
-3. **"Access Denied" during deployment**
-   - Review IAM policies and ensure all necessary permissions are granted
-   - Check that the Lambda execution role exists and has proper permissions
+3. **デプロイ中の"Access Denied"**
+   - IAMポリシーを確認し、必要な権限がすべて付与されているか確認
+   - Lambda実行ロールが存在し、適切な権限を持っているか確認
 
-For more information, see the [AWS documentation on using OIDC with GitHub Actions](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html).
+詳細については、[GitHub ActionsでOIDCを使用するAWSドキュメント](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html)を参照してください。
