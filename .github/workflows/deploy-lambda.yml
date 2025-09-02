@@ -92,6 +92,7 @@ jobs:
           memory-size: 128
           timeout: 30
           environment: '{"ENVIRONMENT":"production","LOG_LEVEL":"INFO"}'
+          role: ${{ secrets.AWS_LAMBDA_EXECUTION_ROLE }}
 
   dry-run-deploy:
     needs: test
