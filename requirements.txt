@@ -1,0 +1,3 @@
+# AWS Lambda Python dependencies
+# No additional dependencies required for this simple example
+# The function only uses built-in Python libraries

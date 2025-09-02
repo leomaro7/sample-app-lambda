@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "aws-diagram-server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "awslabs.aws-diagram-mcp-server"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "aws-knowledge-mcp-server": {
+        "command": "uvx",
+        "args": [
+            "mcp-proxy",
+            "--transport",
+            "streamablehttp",
+            "https://knowledge-mcp.global.api.aws"
+        ]
+    }
+  }
+}
